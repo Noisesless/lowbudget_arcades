@@ -26,6 +26,7 @@
     border: 3px solid #4a4ae0;
     border-radius: 6px;
     box-shadow: 0 0 20px rgba(74, 74, 224, 0.4);
+    display: block;
   }
   .panel {
     display: flex;
@@ -65,7 +66,7 @@
   <div class="panel">
     <h1>TETRIS</h1>
     <div class="box">
-      <div class="label">Berpangkah</div>
+      <div class="label">Skor</div>
       <div class="value" id="score">0</div>
     </div>
     <div class="box">
@@ -85,7 +86,8 @@
       <div><span class="key">←→</span> Gerak</div>
       <div><span class="key">↓</span> Turun lambat</div>
       <div><span class="key">↑ / Spasi</span> Putar</div>
-      <div><span class="key">Spasi</span> Jatuhkan instan</div>
+      <div><span class="key">X/Ctrl</span> Jatuhkan instan</div>
+      <div><span class="key">Z</span> Putar balik</div>
     </div>
   </div>
 </div>
@@ -98,94 +100,85 @@
 
 <script>
 const COLS = 10, ROWS = 20, CELL = 30;
-const board = document.getElementById('board');
-const ctx = board.getContext('2d');
+const boardEl = document.getElementById('board');
+const ctx = boardEl.getContext('2d');
 const nextCanvas = document.getElementById('nextCanvas');
 const nctx = nextCanvas.getContext('2d');
 
-// Definisi semua tetromino (7-bag) dalam bentuk matriks rotasi
+// Definisi semua tetromino (7-bag) dengan rotasi CW 90 derajat + warna
 const SHAPES = {
-  I: { color: '#00f0f0', cells: [[1,1,1,1]] },
-  O: { color: '#f0f000', cells: [[1,1],[1,1]] },
-  T: { color: '#a000f0', cells: [[0,1,0],[1,1,1]] },
-  S: { color: '#00f000', cells: [[0,1,1],[1,1,0]] },
-  Z: { color: '#f00000', cells: [[1,1,0],[0,1,1]] },
-  J: { color: '#0000f0', cells: [[1,0,0],[1,1,1]] },
-  L: { color: '#f0a000', cells: [[0,0,1],[1,1,1]] }
+  I: { color:'#00f0f0', rotations:[ [[1,1,1,1]], [[0,0,1,0],[0,0,1,0],[0,0,1,0],[0,0,1,0]] } },
+  O: { color:'#f0f000', rotations:[[ [1,1], [1,1] ]] },
+  T: { color:'#a000f0', rotations:[ [[0,1,0],[1,1,1]], [[1,1,0],[0,1,1]], [[0,1,1],[1,1,0]], [[1,0,0],[1,0,1]] ] },
+  S: { color:'#00f000', rotations:[ [[0,1,1],[1,1,0]], [[1,1,0],[0,1,0]] } },
+  Z: { color:'#f00000', rotations:[ [[1,1,0],[0,1,1]], [[0,1,0],[1,1,0]] ] },
+  J: { color:'#0000f0', rotations:[ [[1,0,0],[1,1,1]], [[0,1,1],[1,0,0]], [[0,0,1],[1,1,0]], [[1,1,0],[0,1,0]] ] },
+  L: { color:'#f0a000', rotations:[ [[0,0,1],[1,1,1]], [[0,1,1],[0,0,1]], [[1,0,0],[1,0,1]], [[1,1,0],[1,0,0]] ] }
 };
 
-// Generate urutan acak (7-bag) agar distribusi seimbang
+// Urutan acak seimbang (7-bag) — setiap piece muncul rata-rata tiap 7 langkah
 let bag = [];
-function nextFromBag() {
-  if (bag.length === 0) {
-    bag = Object.keys(SHAPES);
-    for (let i = bag.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [bag[i], bag[j]] = [bag[j], bag[i]];
-    }
+function refillBag() {
+  const keys = Object.keys(SHAPES);
+  for (let i = keys.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [keys[i], keys[j]] = [keys[j], keys[i]];
   }
-  return bag.pop();
+  bag.push(...keys);
+}
+function nextType() {
+  if (bag.length === 0) refillBag();
+  return bag.shift();
 }
 
-let grid, current, nextPiece, score, lines, level;
-let dropInterval, dropCounter, lastTime;
-let gameOver = false, paused = false;
-let rafId = null;
+// Papan: array ROWS x COLS, tiap sel null atau string warna
+let grid = [];
+for (let r = 0; r < ROWS; r++) grid.push(new Array(COLS).fill(null));
 
-function makeGrid() {
-  return Array.from({ length: ROWS }, () => Array(COLS).fill(null));
-}
-
-function spawnPiece(type) {
-  const shape = SHAPES[type].cells.map(row => row.slice());
-  return { type, color: SHAPES[type].color, cells: shape, x: Math.floor((COLS - shape[0].length) / 2), y: 0 };
-}
-
-function reset() {
-  grid = makeGrid();
-  score = 0; lines = 0; level = 1;
-  dropInterval = 800; dropCounter = 0; lastTime = 0;
-  gameOver = false; paused = false;
-  bag = [];
-  nextPiece = nextFromBag();
-  current = spawnPiece(nextPiece);
-  updateUI();
-  if (rafId) cancelAnimationFrame(rafId);
-  rafId = requestAnimationFrame(loop);
-}
-
-// Rotasi matriks searah jarum jam
-function rotate(matrix) {
-  const N = matrix.length, R = matrix[0].length;
-  const res = Array.from({ length: R }, () => Array(N).fill(0));
-  for (let r = 0; r < N; r++)
-    for (let c = 0; c < R; c++)
-      res[c][N - 1 - r] = matrix[r][c];
-  return res;
-}
-
-// Cek tabrakan setelah rotasi/gerak
-function collide(g, cells, x, y) {
-  for (let r = 0; r < cells.length; r++) {
-    for (let c = 0; c < cells[r].length; c++) {
-      if (!cells[r][c]) continue;
-      const nx = x + c, ny = y + r;
-      if (nx < 0 || nx >= COLS || ny >= ROWS) return true;
-      if (ny >= 0 && g[ny][nx]) return true;
+function collides(matrix, px, py) {
+  for (let r = 0; r < matrix.length; r++) {
+    for (let c = 0; c < matrix[r].length; c++) {
+      if (!matrix[r][c]) continue;
+      const x = px + c, y = py + r;
+      if (x < 0 || x >= COLS || y >= ROWS) return true;
+      if (y >= 0 && grid[y][x]) return true;
     }
   }
   return false;
 }
 
-function merge() {
-  current.cells.forEach((row, r) => {
-    row.forEach((v, c) => {
-      if (v) {
-        const ny = current.y + r, nx = current.x + c;
-        if (ny >= 0) grid[ny][nx] = current.color;
-      }
-    });
-  });
+let piece, nextType2, holdType = null, canHold = true;
+let score = 0, linesCleared = 0, level = 1;
+let gameOver = false, started = false;
+let dropInterval = 800, lastDrop = 0, rafId = null;
+
+function spawnPiece() {
+  const type = nextType2 || nextType();
+  piece = makePiece(type);
+  nextType2 = nextType();
+  canHold = true;
+  if (collides(piece.matrix, piece.x, piece.y)) endGame('GAME OVER', 'Papan penuh!');
+}
+
+function makePiece(type) {
+  const rot0 = SHAPES[type].rotations[0];
+  return {
+    type: type, color: SHAPES[type].color,
+    rotation: 0, matrix: rot0.slice(),
+    x: Math.floor((COLS - rot0[0].length) / 2), y: holdType ? -1 : 0
+  };
+}
+
+function lockPiece() {
+  for (let r = 0; r < piece.matrix.length; r++) {
+    for (let c = 0; c < piece.matrix[r].length; c++) {
+      if (!piece.matrix[r][c]) continue;
+      const y = piece.y + r, x = piece.x + c;
+      if (y >= 0) grid[y][x] = piece.color;
+    }
+  }
+  clearLines();
+  spawnPiece();
 }
 
 function clearLines() {
@@ -193,7 +186,7 @@ function clearLines() {
   for (let r = ROWS - 1; r >= 0; r--) {
     if (grid[r].every(cell => cell)) {
       grid.splice(r, 1);
-      grid.unshift(Array(COLS).fill(null));
+      grid.push(new Array(COLS).fill(null));
       cleared++;
       r++; // periksa baris yang sama lagi setelah insert
     }
@@ -201,138 +194,96 @@ function clearLines() {
   if (cleared > 0) {
     const points = [0, 100, 300, 500, 800][cleared] * level;
     score += points;
-    lines += cleared;
-    level = Math.floor(lines / 10) + 1;
+    linesCleared += cleared;
+    level = Math.floor(linesCleared / 10) + 1;
     dropInterval = Math.max(80, 800 - (level - 1) * 70);
     updateUI();
   }
 }
 
-function softDrop() {
-  if (!collide(grid, current.cells, current.x, current.y + 1)) {
-    current.y++;
-  } else {
-      lockPiece();
+function move(dx, dy) {
+  if (!gameOver && !collides(piece.matrix, piece.x + dx, piece.y + dy)) {
+    piece.x += dx; piece.y += dy;
+    return true;
   }
+  // jika gagal turun dan sudah menyentuh atas → kunci langsung (gravity otomatis)
+  if (dy > 0 && collides(piece.matrix, piece.x, piece.y - dy)) lockPiece();
+  else if (!collides(piece.matrix, piece.x + dx, piece.y)) { piece.x += dx; return true; }
+  return false;
 }
 
-function hardDrop() {
-  while (!collide(grid, current.cells, current.x, current.y + 1)) current.y++;
-  lockPiece();
-}
-
-function lockPiece() {
-  merge();
-  clearLines();
-  nextPiece = nextFromBag();
-  current = spawnPiece(nextPiece);
-  if (collide(grid, current.cells, current.x, current.y)) endGame();
-}
-
-// Wall kick sederhana saat rotasi
-function tryRotate(dir) {
-  const rotated = rotate(current.cells);
-  const kicks = [0, -1, 1, -2, 2];
-  for (const k of kicks) {
-    if (!collide(grid, rotated, current.x + k, current.y)) {
-      current.cells = rotated;
-      current.x += k;
-      return true;
+function rotate(dir) {
+  const rots = SHAPES[piece.type].rotations;
+  const nextMatrix = rots[(piece.rotation + dir + rots.length) % rots.length];
+  // Wall kick otomatis: coba geser kiri/kanan sampai tidak bentrok dinding
+  for (const k of [-1, 1, -2, 2]) {
+    if (!collides(nextMatrix, piece.x + k, piece.y)) {
+      piece.matrix = nextMatrix; piece.rotation = (piece.rotation + dir) % rots.length;
+      piece.x += k; return true;
     }
   }
   return false;
 }
 
-function endGame() {
-  gameOver = true;
-  document.getElementById('overlay').classList.add('show');
-  document.getElementById('overMsg').textContent = `Skor akhir: ${score}`;
+function softDrop() { if (!gameOver) move(0, 1); }
+
+function hardDrop() {
+  let dist = 0;
+  while (!collides(piece.matrix, piece.x, piece.y + 1)) { piece.y++; dist++; }
+  score += dist * 2; updateUI(); lockPiece();
 }
 
-// --- Rendering ---
+// Gambar satu cell ke context (kembalikan warna asli)
 function drawCell(context, x, y, color) {
+  const s = CELL - 2;
   context.fillStyle = color;
-  context.fillRect(x * CELL, y * CELL, CELL, CELL);
+  context.fillRect(x + 1, y + 1, s, s);
   context.strokeStyle = 'rgba(255,255,255,0.35)';
-  context.lineWidth = 2;
-  context.strokeRect(x * CELL + 1, y * CELL + 1, CELL - 2, CELL - 2);
+  context.lineWidth = 1;
+  context.strokeRect(x + 1, y + 1, s, s);
 }
 
-function drawGridLines() {
-  ctx.strokeStyle = 'rgba(74,74,224,0.15)';
-  ctx.lineWidth = 1;
-  for (let c = 1; c < COLS; c++) {
-    ctx.beginPath(); ctx.moveTo(c * CELL, 0); ctx.lineTo(c * CELL, ROWS * CELL); ctx.stroke();
-  }
-  for (let r = 1; r < ROWS; r++) {
-    ctx.beginPath(); ctx.moveTo(0, r * CELL); ctx.lineTo(COLS * CELL, r * CELL); ctx.stroke();
+// Gambar preview piece (next/hold) ke canvas kecil
+function drawPreview(context, type, cx, cy) {
+  context.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
+  if (!type) return;
+  const rot = SHAPES[type].rotations[0];
+  // hitung posisi agar piece berada di tengah preview
+  let ox = Math.floor((nextCanvas.width - rot[0].length * CELL) / 2 - CELL);
+  let oy = Math.floor((nextCanvas.height - rot.length * CELL) / 2 - CELL);
+  for (let r = 0; r < rot.length; r++) {
+    for (let c = 0; c < rot[r].length; c++) {
+      if (!rot[r][c]) continue;
+      drawCell(context, cx + ox + c * CELL, cy + oy + r * CELL, SHAPES[type].color);
+    }
   }
 }
 
-function draw() {
-  ctx.clearRect(0, 0, board.width, board.height);
-  drawGridLines();
-  // Gambar blok yang sudah terpasang
+function ghostY() {
+  let gy = piece.y;
+  while (!collides(piece.matrix, piece.x, gy + 1)) gy++;
+  return gy;
+}
+
+function drawBoard() {
+  ctx.clearRect(0, 0, boardEl.width, boardEl.height);
+  // grid garis tipis
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  for (let c = 1; c < COLS; c++) { ctx.beginPath(); ctx.moveTo(c*CELL,0); ctx.lineTo(c*CELL,ROWS*CELL); ctx.stroke(); }
+  for (let r = 1; r < ROWS; r++) { ctx.beginPath(); ctx.moveTo(0,r*CELL); ctx.lineTo(COLS*CELL,r*CELL); ctx.stroke(); }
+
+  // papan yang sudah terisi
   for (let r = 0; r < ROWS; r++)
     for (let c = 0; c < COLS; c++)
-      if (grid[r][c]) drawCell(ctx, c, r, grid[r][c]);
-  // Garis drop ghost
-  let gy = current.y;
-  while (!collide(grid, current.cells, current.x, gy + 1)) gy++;
-  ctx.globalAlpha = 0.25;
-  current.cells.forEach((row, r) => row.forEach((v, c) => { if (v) drawCell(ctx, current.x + c, gy + r, current.color); }));
-  ctx.globalAlpha = 1;
-  // Preview piece saat belum turun
-  if (current.y >= 0) {
-    current.cells.forEach((row, r) => row.forEach((v, c) => { if (v) drawCell(ctx, current.x + c, current.y + r, current.color); }));
-  }
-  // Preview next piece
-  nctx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
-  const shape = SHAPES[nextPiece].cells;
-  const size = Math.min(shape.length);
-  const offX = (nextCanvas.width - size * CELL) / 2;
-  const offY = (nextCanvas.height - shape.length * CELL) / 2;
-  shape.forEach((row, r) => row.forEach((v, c) => { if (v) drawCell(nctx, Math.floor(offX/CELL)+c, Math.floor(offY/CELL)+r, SHAPES[nextPiece].color); }));
-}
+      if (grid[r][c]) drawCell(ctx, c * CELL, r * CELL, grid[r][c]);
 
-function updateUI() {
-  document.getElementById('score').textContent = score;
-  document.getElementById('level').textContent = level;
-  document.getElementById('lines').textContent = lines;
-}
+  if (!started && !gameOver) return;
 
-function loop(time = 0) {
-  if (gameOver || paused) return;
-  const delta = time - lastTime;
-  lastTime = time;
-  dropCounter += delta;
-  if (dropCounter > dropInterval) {
-    softDrop();
-    draw();
-  }
-  rafId = requestAnimationFrame(loop);
-}
-
-// --- Kontrol keyboard ---
-document.addEventListener('keydown', e => {
-  if (gameOver || paused) return;
-  switch (e.key) {
-    case 'ArrowLeft':
-      if (!collide(grid, current.cells, current.x - 1, current.y)) current.x--;
-      break;
-    case 'ArrowRight':
-      if (!collide(grid, current.cells, current.x + 1, current.y)) current.x++;
-      break;
-    case 'ArrowDown': softDrop(); break;
-    case 'ArrowUp': case ' ': e.preventDefault(); tryRotate(1); break;
-    default: break;
-  }
-  if (e.key === ' ') hardDrop();
-  draw();
-});
-
-function restart() { reset(); document.getElementById('overlay').classList.remove('show'); }
-restart();
-</script>
-</body>
-</html>
+  // ghost piece
+  if (piece) {
+    const gy = ghostY();
+    for (let r = 0; r < piece.matrix.length; r++)
+      for (let c = 0; c < piece.matrix[r].length; c++)
+        if (piece.matrix[r][c] && gy + r >= 0) {
+          ctx.globalAlpha = 0.25;
+          drawCell(ctx, piece.x * CELL + c * CELL, gy * CELL + r * CELL, piece.color);
