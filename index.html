@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tetris Sederhana</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0f0f1a;
+    color: #e0e0ff;
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    user-select: none;
+  }
+  .game {
+    display: flex;
+    gap: 24px;
+    padding: 20px;
+  }
+  canvas {
+    background: #1a1a2e;
+    border: 3px solid #4a4ae0;
+    border-radius: 6px;
+    box-shadow: 0 0 20px rgba(74, 74, 224, 0.4);
+  }
+  .panel {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    min-width: 160px;
+  }
+  .box {
+    background: #1a1a2e;
+    border: 2px solid #4a4ae0;
+    border-radius: 6px;
+    padding: 14px;
+  }
+  h1 { font-size: 22px; text-align: center; margin-bottom: 8px; color: #7c7cff; letter-spacing: 2px; }
+  .label { font-size: 13px; color: #9a9ad0; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; }
+  .value { font-size: 24px; font-weight: bold; color: #fff; }
+  #nextCanvas, #holdCanvas { background: #12121e; border-radius: 4px; display: block; margin: 0 auto; }
+  .controls { font-size: 12px; line-height: 1.8; color: #b0b0d0; }
+  .key { background: #2a2a40; padding: 2px 7px; border-radius: 4px; color: #fff; font-weight: bold; }
+  button {
+    background: #4a4ae0; color: white; border: none; padding: 10px;
+    border-radius: 6px; cursor: pointer; font-size: 15px; font-weight: bold; letter-spacing: 1px;
+    transition: background 0.2s;
+  }
+  button:hover { background: #6363f0; }
+  .overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+    display: none; justify-content: center; align-items: center; flex-direction: column; gap: 18px;
+  }
+  .overlay.show { display: flex; }
+  .overlay h2 { font-size: 40px; color: #ff6b6b; letter-spacing: 3px; }
+</style>
+</head>
+<body>
+<div class="game">
+  <canvas id="board" width="300" height="600"></canvas>
+  <div class="panel">
+    <h1>TETRIS</h1>
+    <div class="box">
+      <div class="label">Berpangkah</div>
+      <div class="value" id="score">0</div>
+    </div>
+    <div class="box">
+      <div class="label">Tingkat</div>
+      <div class="value" id="level">1</div>
+    </div>
+    <div class="box">
+      <div class="label">Garis Bersih</div>
+      <div class="value" id="lines">0</div>
+    </div>
+    <div class="box">
+      <div class="label">Berikutnya</div>
+      <canvas id="nextCanvas" width="120" height="120"></canvas>
+    </div>
+    <button onclick="restart()">Mulai Ulang</button>
+    <div class="box controls">
+      <div><span class="key">←→</span> Gerak</div>
+      <div><span class="key">↓</span> Turun lambat</div>
+      <div><span class="key">↑ / Spasi</span> Putar</div>
+      <div><span class="key">Spasi</span> Jatuhkan instan</div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <h2 id="overTitle">GAME OVER</h2>
+  <p style="font-size:18px;" id="overMsg"></p>
+  <button onclick="restart()">Main Lagi</button>
+</div>
+
+<script>
+const COLS = 10, ROWS = 20, CELL = 30;
+const board = document.getElementById('board');
+const ctx = board.getContext('2d');
+const nextCanvas = document.getElementById('nextCanvas');
+const nctx = nextCanvas.getContext('2d');
+
+// Definisi semua tetromino (7-bag) dalam bentuk matriks rotasi
+const SHAPES = {
+  I: { color: '#00f0f0', cells: [[1,1,1,1]] },
+  O: { color: '#f0f000', cells: [[1,1],[1,1]] },
+  T: { color: '#a000f0', cells: [[0,1,0],[1,1,1]] },
+  S: { color: '#00f000', cells: [[0,1,1],[1,1,0]] },
+  Z: { color: '#f00000', cells: [[1,1,0],[0,1,1]] },
+  J: { color: '#0000f0', cells: [[1,0,0],[1,1,1]] },
+  L: { color: '#f0a000', cells: [[0,0,1],[1,1,1]] }
+};
+
+// Generate urutan acak (7-bag) agar distribusi seimbang
+let bag = [];
+function nextFromBag() {
+  if (bag.length === 0) {
+    bag = Object.keys(SHAPES);
+    for (let i = bag.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [bag[i], bag[j]] = [bag[j], bag[i]];
+    }
+  }
+  return bag.pop();
+}
+
+let grid, current, nextPiece, score, lines, level;
+let dropInterval, dropCounter, lastTime;
+let gameOver = false, paused = false;
+let rafId = null;
+
+function makeGrid() {
+  return Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+}
+
+function spawnPiece(type) {
+  const shape = SHAPES[type].cells.map(row => row.slice());
+  return { type, color: SHAPES[type].color, cells: shape, x: Math.floor((COLS - shape[0].length) / 2), y: 0 };
+}
+
+function reset() {
+  grid = makeGrid();
+  score = 0; lines = 0; level = 1;
+  dropInterval = 800; dropCounter = 0; lastTime = 0;
+  gameOver = false; paused = false;
+  bag = [];
+  nextPiece = nextFromBag();
+  current = spawnPiece(nextPiece);
+  updateUI();
+  if (rafId) cancelAnimationFrame(rafId);
+  rafId = requestAnimationFrame(loop);
+}
+
+// Rotasi matriks searah jarum jam
+function rotate(matrix) {
+  const N = matrix.length, R = matrix[0].length;
+  const res = Array.from({ length: R }, () => Array(N).fill(0));
+  for (let r = 0; r < N; r++)
+    for (let c = 0; c < R; c++)
+      res[c][N - 1 - r] = matrix[r][c];
+  return res;
+}
+
+// Cek tabrakan setelah rotasi/gerak
+function collide(g, cells, x, y) {
+  for (let r = 0; r < cells.length; r++) {
+    for (let c = 0; c < cells[r].length; c++) {
+      if (!cells[r][c]) continue;
+      const nx = x + c, ny = y + r;
+      if (nx < 0 || nx >= COLS || ny >= ROWS) return true;
+      if (ny >= 0 && g[ny][nx]) return true;
+    }
+  }
+  return false;
+}
+
+function merge() {
+  current.cells.forEach((row, r) => {
+    row.forEach((v, c) => {
+      if (v) {
+        const ny = current.y + r, nx = current.x + c;
+        if (ny >= 0) grid[ny][nx] = current.color;
+      }
+    });
+  });
+}
+
+function clearLines() {
+  let cleared = 0;
+  for (let r = ROWS - 1; r >= 0; r--) {
+    if (grid[r].every(cell => cell)) {
+      grid.splice(r, 1);
+      grid.unshift(Array(COLS).fill(null));
+      cleared++;
+      r++; // periksa baris yang sama lagi setelah insert
+    }
+  }
+  if (cleared > 0) {
+    const points = [0, 100, 300, 500, 800][cleared] * level;
+    score += points;
+    lines += cleared;
+    level = Math.floor(lines / 10) + 1;
+    dropInterval = Math.max(80, 800 - (level - 1) * 70);
+    updateUI();
+  }
+}
+
+function softDrop() {
+  if (!collide(grid, current.cells, current.x, current.y + 1)) {
+    current.y++;
+  } else {
+      lockPiece();
+  }
+}
+
+function hardDrop() {
+  while (!collide(grid, current.cells, current.x, current.y + 1)) current.y++;
+  lockPiece();
+}
+
+function lockPiece() {
+  merge();
+  clearLines();
+  nextPiece = nextFromBag();
+  current = spawnPiece(nextPiece);
+  if (collide(grid, current.cells, current.x, current.y)) endGame();
+}
+
+// Wall kick sederhana saat rotasi
+function tryRotate(dir) {
+  const rotated = rotate(current.cells);
+  const kicks = [0, -1, 1, -2, 2];
+  for (const k of kicks) {
+    if (!collide(grid, rotated, current.x + k, current.y)) {
+      current.cells = rotated;
+      current.x += k;
+      return true;
+    }
+  }
+  return false;
+}
+
+function endGame() {
+  gameOver = true;
+  document.getElementById('overlay').classList.add('show');
+  document.getElementById('overMsg').textContent = `Skor akhir: ${score}`;
+}
+
+// --- Rendering ---
+function drawCell(context, x, y, color) {
+  context.fillStyle = color;
+  context.fillRect(x * CELL, y * CELL, CELL, CELL);
+  context.strokeStyle = 'rgba(255,255,255,0.35)';
+  context.lineWidth = 2;
+  context.strokeRect(x * CELL + 1, y * CELL + 1, CELL - 2, CELL - 2);
+}
+
+function drawGridLines() {
+  ctx.strokeStyle = 'rgba(74,74,224,0.15)';
+  ctx.lineWidth = 1;
+  for (let c = 1; c < COLS; c++) {
+    ctx.beginPath(); ctx.moveTo(c * CELL, 0); ctx.lineTo(c * CELL, ROWS * CELL); ctx.stroke();
+  }
+  for (let r = 1; r < ROWS; r++) {
+    ctx.beginPath(); ctx.moveTo(0, r * CELL); ctx.lineTo(COLS * CELL, r * CELL); ctx.stroke();
+  }
+}
+
+function draw() {
+  ctx.clearRect(0, 0, board.width, board.height);
+  drawGridLines();
+  // Gambar blok yang sudah terpasang
+  for (let r = 0; r < ROWS; r++)
+    for (let c = 0; c < COLS; c++)
+      if (grid[r][c]) drawCell(ctx, c, r, grid[r][c]);
+  // Garis drop ghost
+  let gy = current.y;
+  while (!collide(grid, current.cells, current.x, gy + 1)) gy++;
+  ctx.globalAlpha = 0.25;
+  current.cells.forEach((row, r) => row.forEach((v, c) => { if (v) drawCell(ctx, current.x + c, gy + r, current.color); }));
+  ctx.globalAlpha = 1;
+  // Preview piece saat belum turun
+  if (current.y >= 0) {
+    current.cells.forEach((row, r) => row.forEach((v, c) => { if (v) drawCell(ctx, current.x + c, current.y + r, current.color); }));
+  }
+  // Preview next piece
+  nctx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
+  const shape = SHAPES[nextPiece].cells;
+  const size = Math.min(shape.length);
+  const offX = (nextCanvas.width - size * CELL) / 2;
+  const offY = (nextCanvas.height - shape.length * CELL) / 2;
+  shape.forEach((row, r) => row.forEach((v, c) => { if (v) drawCell(nctx, Math.floor(offX/CELL)+c, Math.floor(offY/CELL)+r, SHAPES[nextPiece].color); }));
+}
+
+function updateUI() {
+  document.getElementById('score').textContent = score;
+  document.getElementById('level').textContent = level;
+  document.getElementById('lines').textContent = lines;
+}
+
+function loop(time = 0) {
+  if (gameOver || paused) return;
+  const delta = time - lastTime;
+  lastTime = time;
+  dropCounter += delta;
+  if (dropCounter > dropInterval) {
+    softDrop();
+    draw();
+  }
+  rafId = requestAnimationFrame(loop);
+}
+
+// --- Kontrol keyboard ---
+document.addEventListener('keydown', e => {
+  if (gameOver || paused) return;
+  switch (e.key) {
+    case 'ArrowLeft':
+      if (!collide(grid, current.cells, current.x - 1, current.y)) current.x--;
+      break;
+    case 'ArrowRight':
+      if (!collide(grid, current.cells, current.x + 1, current.y)) current.x++;
+      break;
+    case 'ArrowDown': softDrop(); break;
+    case 'ArrowUp': case ' ': e.preventDefault(); tryRotate(1); break;
+    default: break;
+  }
+  if (e.key === ' ') hardDrop();
+  draw();
+});
+
+function restart() { reset(); document.getElementById('overlay').classList.remove('show'); }
+restart();
+</script>
+</body>
+</html>
