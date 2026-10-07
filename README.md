@@ -1,78 +1,99 @@
-# Arcade Low Budget
+# 🕹️ Arcade Low Budget
 
-Koleksi game arcade: zero dependency, zero build system, zero budget.
-Setiap game berdiri sendiri di `games/<nama>/` (HTML + CSS + JS + aset).
+> **Rp 0 production cost.** Zero dependency. Zero build system. Zero aset berbayar.
+> Setiap baris pixel-nya digambar runtime, tiap bunyi-nya disintesis Python.
 
-## Games
+Koleksi game arcade vanilla JS yang berdiri sendiri di `games/<nama>/` —
+buka file, langsung main. Tidak ada `npm install`, tidak ada bundler,
+tidak ada lisensi aset. 🎉
 
-| Game | Status | Path |
-|------|--------|------|
-| Neon Tetris | ✅ Playable | `games/tetris/` |
-| Neon Strike | ✅ Playable | `games/plane-shooter/` |
-| Snake | Coming soon | — |
-| Pong | Coming soon | — |
+## 🎮 Games
 
-## Cara main
+| Game | Genre | Fitur signature | Status |
+|------|-------|-----------------|--------|
+| [Neon Tetris](games/tetris/) | Puzzle | BGM Korobeiniki yang ngebut tiap stage, feel 2009-grade (lock delay, DAS/ARR, 7-bag) | ✅ Playable |
+| [Neon Strike](games/plane-shooter/) | Shoot 'em up | Tampilan 128-bit CRT, 4 boss binatang animatik, chiptune BGM live-sequenced | ✅ Playable |
+| Snake | Arcade | — | 🔜 Coming soon |
+| Pong | Arcade | — | 🔜 Coming soon |
 
-Disarankan serve via HTTP (audio full quality: Web Audio + WAV via fetch):
+## 🚀 Cara main
 
 ```bash
+git clone https://github.com/Noisesless/lowbudget_arcades.git
+cd lowbudget_arcades
 python3 -m http.server 8123
 ```
 
-Buka `http://localhost:8123/` → pilih game.
+Buka `http://localhost:8123/` → pilih game. Selesai. Tidak ada langkah lain.
 
-Dibuka langsung via `file://` juga jalan: audio otomatis fallback ke
-HTMLAudio (`♪ basic` di badge) — SFX & BGM tetap bunyi, tanpa fitur pitch-shift/sequencing.
+> Dibuka langsung via `file://` juga jalan — audio otomatis fallback ke
+> HTMLAudio (badge `♪ basic`), SFX & BGM tetap bunyi.
 
-## Neon Tetris
+## 🧨 Neon Strike
 
-- Kontrol: ← → geser · ↑ rotasi · ↓ soft drop · SPACE hard drop · C hold · P pause · M sound
-- Sistem: stage (tamat tiap 10 baris), combo, lock delay, DAS/ARR auto-repeat, 7-bag randomizer, high score localStorage
-- SFX: WAV chiptune di `games/tetris/assets/sfx/` (digenerate lokal, bebas lisensi)
-- BGM: Korobeiniki loop (`assets/bgm/bgm.wav`, digenerate `assets/gen_audio.py`), tempo naik 8% per stage, auto-pause/mute
+Shmup arcade ala konsol 128-bit: render di buffer half-res lalu di-upscale
+pixelated + scanline CRT + vignette. Musuhnya serangga kosmik, boss-nya
+melirik ke posisi kamu.
 
-## Neon Strike
+**Kontrol**: `← → ↑ ↓` / `WASD` gerak · tembak otomatis · `X` bom · `P` pause · `M` sound · `1`/`2`/`3` pilih pesawat
 
-- Kontrol: ← → ↑ ↓ / WASD gerak · tembak otomatis · `X` bom · `P` pause · `M` sound · `1`/`2`/`3` pilih pesawat
-- Pesawat: Interceptor (spread, DPS tunggal tertinggi), Blade (twin rapid-fire, paling lincah, 2 nyawa), Bulwark (laser pierce, tanky 4 nyawa, DPS paling rendah). Rate of fire & damage di-balance per pesawat. Pilihan tersimpan di localStorage
-- Musuh: drone, zigzag, diver, shooter, tank, spinner, gunship, mine + asteroid hazard (muncul mulai level 2, HP & ukuran naik tiap level) + sampah luar angkasa "derelict" (kapal karam raksasa penyumbat jalur, level 3+, HP tebal, drop powerup dijamin). HP kroco +1 tiap 3 level, tank & gunship scaling 2x lebih cepat (skor ikut naik)
-- Wave formation: barisan, stream, formasi V, pincer dua sisi — satu wave satu tipe musuh
-- Combo multiplier: kill beruntun → skor x2 s/d x5, putus saat kena hit / 3 detik tanpa kill
-- Boss tiap 3 level, 4 varian bertema binatang: WARDEN (laba-laba, kipas radial), SWARM LORD (lebah raksasa, aimed burst + spawn drone), DOOMSCARAB (kumbang, laser sweep + homing), LEVIATHAN (ubur-ubur kosmik, spiral bullet-hell). Enraged di bawah 40% HP, semua animatik detail (kaki 2 ruas, sayap berurat, tentakel bio-luminesen, mata melirik). Serangannya scaling per level: peluru lebih banyak, lebih cepat, fire rate naik
-- Upgrade senjata Lv 1–6, pola & model peluru beda per pesawat + pesawat **morphing** (pod, sayap energi, pylon rudal, core reaktor). Power-ups: weapon/shield/bom/skor/nyawa — item yang sudah mentok otomatis jadi poin bonus (+ teks melayang)
-- Layar 540×810, semua unit digambar detail (panel, kokpit, thruster, tread beranimasi)
-- Audio di-preload di background saat load → tidak ada lag saat mulai/mati
-- Stage themes: 4 tema warna + nebula, bergilir per level
-- Tampilan "128-bit": render buffer half-res di-upscale pixelated + scanline CRT + vignette
-- SFX & BGM: WAV asli di `assets/sfx/` + `assets/bgm/`, digenerate `assets/gen_audio.py` (Python stdlib `math`+`wave`, bebas lisensi). BGM = stem kick/hat/bass/lead yang di-sequence live via WebAudio (pitch-shift playbackRate)
+- ✈️ **3 pesawat, 3 gaya main** — Interceptor (spread, DPS tunggal tertinggi), Blade (twin rapid-fire, lincah, 2 nyawa), Bulwark (laser pierce, 4 nyawa, pelan). Damage & fire rate di-balance per pesawat, pilihan tersimpan di localStorage
+- 🔫 **Senjata Lv 1–6 + pesawat morphing**: naik level = pod sayap, sayap energi, pylon rudal, core reaktor muncul di body pesawat. Model peluru beda per pesawat (bolt, tracer, laser, rudal homing)
+- 👾 **8 tipe musuh + hazard**: drone, zigzag, diver, shooter, tank (tread-nya beranimasi!), spinner, gunship, mine — plus asteroid & kapal karam raksasa (*derelict*) yang nyumbat layar dan menjamin drop powerup
+- 🌊 **Wave formation**: barisan, stream, formasi V, pincer menjepit dua sisi
+- 🔥 **Combo x2–x5**: kill beruntun tanpa tersentuh. Greed is good, greed is dead
+- 🐙 **4 boss binatang animatik** tiap 3 level: WARDEN (laba-laba, kaki 2 ruas), SWARM LORD (lebah, sayap berurat kepak 22Hz), DOOMSCARAB (kumbang bertanduk), LEVIATHAN (ubur-ubur, tentakel bio-luminesen, pupil melirik) — enraged < 40% HP, serangan scaling makin galak tiap level
+- 🌌 Stage themes 4 palet + nebula, powerup mentok otomatis jadi poin bonus
 
-## Struktur
+## 🧱 Neon Tetris
+
+Tetris yang *feels* beneran: 7-bag randomizer, lock delay, DAS/ARR auto-repeat,
+combo, ghost piece, high score localStorage.
+
+**Kontrol**: `← →` geser · `↑` rotasi · `↓` soft drop · `SPACE` hard drop · `C` hold · `P` pause · `M` sound
+
+- 🎵 BGM **Korobeiniki** (lagu rakyat Rusia, public domain) — tempo naik +8% tiap stage; stage 8+ = panik 1.6x speed
+
+## 🔊 Audio: 100% digenerate, 0 file di-download
+
+Semua SFX & musik di repo ini **digenerate dari kode**, bukan aset jadi:
+
+```bash
+python3 games/tetris/assets/gen_audio.py         # SFX + loop Korobeiniki
+python3 games/plane-shooter/assets/gen_audio.py  # 9 SFX + 5 stem + full loop
+```
+
+Python stdlib murni (`math` + `wave`) — square/triangle/sine wave, envelope,
+lowpass 1-pole, noise highpass → WAV 16-bit. BGM Neon Strike di-*sequence*
+live di WebAudio (kick/hat/bass/lead di pitch-shift via `playbackRate`),
+boss mode naik tempo + lead oktaf. Total semua audio di repo ≈ 1.6MB, lisensi gratis.
+
+## 📁 Struktur
 
 ```
 arcade-low-budget/
 ├── index.html          # launcher / daftar game
 └── games/
     ├── tetris/
-    │   ├── index.html
-    │   ├── style.css
-    │   ├── tetris.js
+    │   ├── index.html + style.css + tetris.js
     │   └── assets/
     │       ├── gen_audio.py      # generator SFX + BGM (Python stdlib)
     │       ├── sfx/*.wav
     │       └── bgm/bgm.wav       # loop Korobeiniki
     └── plane-shooter/
-        ├── index.html
-        ├── style.css
-        ├── game.js
+        ├── index.html + style.css + game.js
         └── assets/
             ├── gen_audio.py      # generator SFX + stem + full loop BGM
             ├── sfx/*.wav
             └── bgm/*.wav         # 5 stem + bgm.wav (fallback loop)
 ```
 
-## Tambah game baru
+## ➕ Tambah game baru
 
-1. Buat folder `games/<nama>/`
-2. Isi HTML + CSS + JS mandiri (plus `assets/` kalau perlu)
-3. Daftarkan kartunya di `index.html` root
+1. Buat folder `games/<nama>/` — HTML + CSS + JS mandiri (plus `assets/` kalau perlu)
+2. Daftarkan kartunya di `index.html` root
+3. Konvensi low budget: vanilla, tanpa dependency, aset digenerate kode kalau bisa
+
+---
+
+*Made with 💾, `Math.sin()`, dan Web Audio API. Kalau ada bug, itu fiturnya.*
