@@ -1,0 +1,216 @@
+/* ===== NEON TETRIS — tema glassmorphism gelap ===== */
+
+:root {
+    --bg-0: #07070f;
+    --bg-1: #0d0d1e;
+    --panel: rgba(255, 255, 255, 0.05);
+    --panel-border: rgba(255, 255, 255, 0.1);
+    --text: #e8e8f5;
+    --text-dim: #8a8aa8;
+    --neon-cyan: #00e5ff;
+    --neon-magenta: #ff2fd6;
+    --gold: #ffd54a;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(ellipse at 50% -20%, var(--bg-1), var(--bg-0) 70%);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    overflow: hidden;
+}
+
+/* Orb ambient di latar — CSS transform-only biar murah buat GPU */
+.bg-orbs { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+.orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(90px);
+    opacity: 0.35;
+    /* animasi dimatikan: blur 90px yang bergerak dipaksa re-composite
+       tiap frame dan jadi beban GPU terbesar di halaman ini */
+}
+.orb-1 { width: 420px; height: 420px; background: #1b2fd8; top: -120px; left: -80px; }
+.orb-2 { width: 360px; height: 360px; background: #8f1bb8; bottom: -140px; right: -60px; animation-delay: -5s; }
+.orb-3 { width: 260px; height: 260px; background: #0aa8a0; top: 40%; left: 60%; animation-delay: -9s; }
+
+@keyframes float {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(30px, -40px) scale(1.08); }
+}
+
+/* ===== Layout utama ===== */
+.game-shell {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.title-bar {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+}
+
+.title {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: 4px;
+    color: var(--neon-cyan);
+    text-shadow: 0 0 18px rgba(0, 229, 255, 0.55);
+}
+.title span { color: var(--neon-magenta); text-shadow: 0 0 18px rgba(255, 47, 214, 0.55); }
+
+.title-badges { display: flex; gap: 8px; }
+
+.fps {
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-dim);
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 999px;
+    padding: 4px 12px;
+}
+
+/* Layout: papan KIRI, panel info KANAN */
+.board-wrap {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 16px;
+}
+
+/* Kanvas setinggi mungkin tanpa menembus viewport; rasio 1:2 dijaga */
+.canvas-box {
+    position: relative;
+    height: min(72vh, 640px);
+    aspect-ratio: 1 / 2;
+    flex: 0 0 auto;
+}
+
+#gameCanvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    border-radius: 12px;
+    border: 1px solid var(--panel-border);
+    box-shadow:
+        0 0 0 1px rgba(0, 229, 255, 0.08),
+        0 0 40px rgba(0, 229, 255, 0.07),
+        0 24px 60px rgba(0, 0, 0, 0.6);
+}
+
+/* ===== Overlay menu / pause / game over ===== */
+.overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: rgba(5, 5, 15, 0.85);
+    /* backdrop-filter dihapus: overlay dihapus dari DOM saat playing,
+       jadi blur-nya gak pernah kebayar; solid gelap lebih murah */
+}
+/* display:none, bukan cuma opacity:0 — backdrop-filter yang "tersembunyi"
+   tapi masih di-composite adalah pembunuh FPS nomor satu di Chrome */
+.overlay.hidden { display: none; }
+
+.overlay-card { text-align: center; padding: 24px; }
+.overlay-card h2 {
+    font-size: 34px;
+    letter-spacing: 3px;
+    margin-bottom: 12px;
+    background: linear-gradient(90deg, var(--neon-cyan), var(--neon-magenta));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+.overlay-card p { color: var(--text-dim); margin-bottom: 20px; }
+
+.overlay-keys {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-dim);
+    max-width: 260px;
+    margin: 0 auto;
+}
+.overlay-keys span {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 5px 10px;
+}
+
+kbd {
+    display: inline-block;
+    min-width: 20px;
+    padding: 2px 6px;
+    font-family: inherit;
+    font-size: 11px;
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--panel-border);
+    border-bottom-width: 2px;
+    border-radius: 5px;
+}
+
+/* ===== Side panel (HUD) ===== */
+.side-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 160px;
+}
+.next-card { flex: 1; min-height: 96px; }
+
+.panel-card {
+    /* TANPA backdrop-filter: panel ini bertetangga dengan canvas yang
+       redraw tiap frame — blur-nya akan ikut di-recomposite 60x/detik */
+    background: rgba(18, 18, 34, 0.72);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    padding: 12px 16px;
+}
+.panel-card h3 {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+}
+.stat-value {
+    font-size: 24px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+.stat-value.gold { color: var(--gold); text-shadow: 0 0 12px rgba(255, 213, 74, 0.4); }
+.stat-sub { font-size: 12px; color: var(--neon-magenta); min-height: 16px; }
+
+.next-canvas,
+.next-card canvas { display: block; margin-top: 6px; }
+
+#nextCanvas {
+    width: 96px;
+    height: 64px;
+}
+
+/* ===== Flash animasi skor, tanpa shadow blur berat ===== */
+@keyframes pop {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.18); }
+    100% { transform: scale(1); }
+}
+.stat-value.pop { animation: pop 0.25s ease; }

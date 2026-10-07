@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <title>NEON TETRIS</title>
+    <link rel="stylesheet" href="style.css?v=6">
+</head>
+<body>
+    <div class="bg-orbs" aria-hidden="true">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
+
+    <main class="game-shell">
+        <header class="title-bar">
+            <h1 class="title">NEON<span>TETRIS</span></h1>
+            <div class="title-badges">
+                <div class="fps" id="sfxState">♪ ...</div>
+                <div class="fps" id="fps">60 FPS</div>
+            </div>
+        </header>
+
+        <div class="board-wrap">
+            <div class="canvas-box">
+                <canvas id="gameCanvas"></canvas>
+
+                <!-- Overlay DOM: menu / pause / game over -->
+                <div class="overlay" id="overlay">
+                    <div class="overlay-card">
+                        <h2 id="overlayTitle">NEON TETRIS</h2>
+                        <p id="overlaySub">Tekan <kbd>SPACE</kbd> untuk mulai</p>
+                        <div class="overlay-keys" id="overlayKeys">
+                            <span><kbd>←</kbd><kbd>→</kbd> geser</span>
+                            <span><kbd>↑</kbd> rotasi</span>
+                            <span><kbd>↓</kbd> soft drop</span>
+                            <span><kbd>SPACE</kbd> hard drop</span>
+                            <span><kbd>C</kbd> hold</span>
+                            <span><kbd>P</kbd> pause</span>
+                            <span><kbd>M</kbd> sound on/off</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <aside class="side-panel">
+                <section class="panel-card">
+                    <h3>Skor</h3>
+                    <div class="stat-value" id="score">0</div>
+                    <div class="stat-sub" id="combo"></div>
+                </section>
+                <section class="panel-card">
+                    <h3>Stage</h3>
+                    <div class="stat-value" id="level">1</div>
+                </section>
+                <section class="panel-card">
+                    <h3>Lines</h3>
+                    <div class="stat-value" id="lines">0</div>
+                </section>
+                <section class="panel-card">
+                    <h3>Best</h3>
+                    <div class="stat-value gold" id="best">0</div>
+                </section>
+                <section class="panel-card">
+                    <h3>Hold <kbd>C</kbd></h3>
+                    <canvas id="holdCanvas" width="96" height="64"></canvas>
+                </section>
+                <section class="panel-card next-card">
+                    <h3>Berikutnya</h3>
+                    <canvas id="nextCanvas" width="96" height="64"></canvas>
+                </section>
+            </aside>
+        </div>
+    </main>
+
+    <script src="tetris.js?v=19"></script>
+</body>
+</html>

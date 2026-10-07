@@ -1,28 +1,122 @@
-# Dawet Ayu Banjarnegara 🍧
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARCADE LOW BUDGET</title>
+    <style>
+        :root {
+            --bg: #07070f;
+            --panel: rgba(255,255,255,0.05);
+            --border: rgba(255,255,255,0.1);
+            --text: #e8e8f5;
+            --dim: #8a8aa8;
+            --cyan: #00e5ff;
+            --magenta: #ff2fd6;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            min-height: 100vh;
+            background: radial-gradient(ellipse at 50% -20%, #0d0d1e, var(--bg) 70%);
+            color: var(--text);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 32px;
+            padding: 40px 20px;
+        }
+        h1 {
+            font-size: 40px;
+            letter-spacing: 6px;
+            text-align: center;
+            background: linear-gradient(90deg, var(--cyan), var(--magenta));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 40px rgba(0,229,255,0.25);
+        }
+        .subtitle { color: var(--dim); letter-spacing: 2px; font-size: 13px; text-transform: uppercase; }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 260px));
+            gap: 20px;
+            justify-content: center;
+            width: 100%;
+            max-width: 900px;
+        }
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 28px 24px;
+            text-decoration: none;
+            color: var(--text);
+            transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        .card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(0,229,255,0.5);
+            box-shadow: 0 12px 40px rgba(0,229,255,0.12);
+        }
+        .card .icon { font-size: 40px; margin-bottom: 12px; }
+        .card h2 { font-size: 20px; letter-spacing: 2px; margin-bottom: 6px; }
+        .card p { color: var(--dim); font-size: 13px; line-height: 1.5; }
+        .badge {
+            display: inline-block;
+            margin-top: 12px;
+            font-size: 11px;
+            padding: 3px 10px;
+            border-radius: 999px;
+            background: rgba(63,212,74,0.15);
+            color: #3fd44a;
+            border: 1px solid rgba(63,212,74,0.3);
+        }
+        .badge.soon {
+            background: rgba(138,138,168,0.12);
+            color: var(--dim);
+            border-color: var(--border);
+        }
+        footer { color: var(--dim); font-size: 12px; }
+    </style>
+</head>
+<body>
+    <header style="text-align:center">
+        <h1>ARCADE LOW BUDGET</h1>
+        <div class="subtitle">Zero dependency · Zero build · Zero budget</div>
+    </header>
 
-**Dawet Ayu** adalah **minuman tradisional khas Banjarnegara** — sejenis dawet (jagung manis yang digiling dan dimasak) dengan varian rasa *ayam* (bukan ayam goreng, tapi jenis jagung khusus). 
+    <nav class="grid">
+        <a class="card" href="games/tetris/index.html">
+            <div class="icon">▦</div>
+            <h2>NEON TETRIS</h2>
+            <p>Stack, clear, survive. Stage system, combo, lock delay, hold, chiptune SFX.</p>
+            <span class="badge">PLAYABLE</span>
+        </a>
 
----
+        <a class="card" href="games/plane-shooter/index.html">
+            <div class="icon">✈</div>
+            <h2>NEON STRIKE</h2>
+            <p>Plane shooter 128-bit: 8 tipe musuh, 4 boss binatang, wave formation, combo x5, 3 pesawat morphing, chiptune BGM live-sequenced.</p>
+            <span class="badge">PLAYABLE</span>
+        </a>
 
-### Asal-usul & Sejarah:
-> *"Dawet Ayu berasal dari Banjarnegara. Dawet Ayu merupakan salah satu minuman tradisional khas Banjarnegara."* — [arsip-indonesia.org](https://www.arsip-indonesia.org)
+        <div class="card" style="opacity:0.45">
+            <div class="icon">●</div>
+            <h2>SNAKE</h2>
+            <p>Retro snake dengan power-ups. Coming soon.</p>
+            <span class="badge soon">COMING SOON</span>
+        </div>
 
-Jadi ini **warisan kuliner lokal** yang sudah ada sejak lama di wilayah tersebut — bukan produk modern atau merek dagang baru.
+        <div class="card" style="opacity:0.45">
+            <div class="icon">▮▮</div>
+            <h2>PONG</h2>
+            <p>Classic 1v1, first to 11. Coming soon.</p>
+            <span class="badge soon">COMING SOON</span>
+        </div>
+    </nav>
 
----
-
-### Karakteristik Dawet Ayu:
-- Dibuat dari **jagung manis (ayam)** yang digiling halus → menghasilkan tekstur lembut khas dawet
-- Biasanya disajikan dingin dengan santan, gula aren, dan kadang perasan jeruk nipis
-- Warna kekuningan alami dari jagung — jadi lebih ringan dibanding dawet biasa
-
----
-
-### Kenapa Penting? 🌾
-Dawet Ayu mewakili **identitas kuliner Banjarnegara** yang unik. Kalau Anda pernah berkunjung ke sana atau ingin mencoba makanan khas daerah, ini salah satu pilihan lokal yang otentik dan terjangkau (low budget!). 
-
-Kalau mau cari tempat jualan dawet Ayu di Banjarnegara — saya bisa bantu carikan lagi lewat webfetch! 🍧
-
-Baik, saya langsung tulis ulang file `index.html` **secara lengkap dari awal sampai akhir** — game Tetris yang 100% berfungsi penuh (rotasi + wall-kick andal). 🔧
-
-📁 **Berkas tersimpan di:** `/mnt/Data_300GB/project/tetris-low-budget/index.html`
+    <footer>3 files per game. Tetap low budget. 🕹️</footer>
+</body>
+</html>

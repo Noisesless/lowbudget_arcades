@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <title>NEON STRIKE</title>
+    <link rel="stylesheet" href="style.css?v=3">
+</head>
+<body>
+    <div class="bg-orbs" aria-hidden="true">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
+
+    <main class="game-shell">
+        <header class="title-bar">
+            <h1 class="title">NEON<span>STRIKE</span></h1>
+            <div class="title-badges">
+                <div class="badge128">128-BIT</div>
+                <div class="fps" id="sfxState">♪ ...</div>
+                <div class="fps" id="fps">60 FPS</div>
+            </div>
+        </header>
+
+        <div class="board-wrap">
+            <div class="canvas-box">
+                <canvas id="gameCanvas"></canvas>
+
+                <!-- Overlay DOM: menu / pause / game over -->
+                <div class="overlay" id="overlay">
+                    <div class="overlay-card">
+                        <h2 id="overlayTitle">NEON STRIKE</h2>
+                        <p id="overlaySub">Tekan <kbd>SPACE</kbd> untuk mulai · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> pilih pesawat</p>
+                        <div class="overlay-keys" id="overlayKeys">
+                            <span><kbd>1</kbd> Interceptor · spread</span>
+                            <span><kbd>2</kbd> Blade · twin cepat</span>
+                            <span><kbd>3</kbd> Bulwark · laser pierce</span>
+                            <span><kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd> / WASD gerak</span>
+                            <span>tembak otomatis</span>
+                            <span><kbd>X</kbd> bom</span>
+                            <span><kbd>P</kbd> pause</span>
+                            <span><kbd>M</kbd> sound on/off</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <aside class="side-panel">
+                <section class="panel-card">
+                    <h3>Skor</h3>
+                    <div class="stat-value" id="score">0</div>
+                    <div class="stat-sub" id="multi"></div>
+                </section>
+                <section class="panel-card">
+                    <h3>Level</h3>
+                    <div class="stat-value" id="level">1</div>
+                </section>
+                <section class="panel-card">
+                    <h3>Senjata</h3>
+                    <div class="stat-value" id="weapon">Lv 1</div>
+                    <div class="weapon-bar" id="weaponBar"></div>
+                </section>
+                <section class="panel-card">
+                    <h3>Lives</h3>
+                    <div class="stat-value" id="lives">♥♥♥</div>
+                </section>
+                <section class="panel-card">
+                    <h3>Bom <kbd>X</kbd></h3>
+                    <div class="stat-value" id="bombs">2</div>
+                </section>
+                <section class="panel-card">
+                    <h3>Best</h3>
+                    <div class="stat-value gold" id="best">0</div>
+                </section>
+            </aside>
+        </div>
+    </main>
+
+    <script src="game.js?v=10"></script>
+</body>
+</html>
